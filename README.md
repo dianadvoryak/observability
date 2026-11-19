@@ -55,8 +55,8 @@ echo '{"message": "Тестовый лог", "level": "info"}' | nc localhost 50
 
 
    
-• Просмотр логов (Discover): http://localhost:5601/app/discover
-• Создание шаблона индекса (Data Views): http://localhost:5601/app/management/kibana/dataViews
-• Список всех индексов в базе: http://localhost:5601/app/management/data/index_management/indices
+• Просмотр логов (Discover): http://localhost:5601/app/discover  
+• Создание шаблона индекса (Data Views): http://localhost:5601/app/management/kibana/dataViews  
+• Список всех индексов в базе: http://localhost:5601/app/management/data/index_management/indices  
 
 
