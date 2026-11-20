@@ -1,0 +1,86 @@
+services:
+  postgres-server:
+    image: postgres:16-alpine
+    container_name: zabbix-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: ${TZ}
+    volumes:
+      - ./zabbix-data/postgres:/var/lib/postgresql/data
+    networks:
+      - zabbix-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:${ZABBIX_VERSION}
+    container_name: zabbix-server
+    restart: unless-stopped
+    depends_on:
+      postgres-server:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: postgres-server
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: ${TZ}
+    ports:
+      - "10051:10051"
+    volumes:
+      - ./zabbix-data/alertscripts:/usr/lib/zabbix/alertscripts
+      - ./zabbix-data/externalscripts:/usr/lib/zabbix/externalscripts
+      - ./zabbix-data/snmptraps:/var/lib/zabbix/snmptraps
+    networks:
+      - zabbix-net
+
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:${ZABBIX_VERSION}
+    container_name: zabbix-web
+    restart: unless-stopped
+    depends_on:
+      postgres-server:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_started
+    environment:
+      ZBX_SERVER_HOST: zabbix-server
+      DB_SERVER_HOST: postgres-server
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PHP_TZ: ${TZ}
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    networks:
+      - zabbix-net
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:${ZABBIX_VERSION}
+    container_name: zabbix-agent
+    restart: unless-stopped
+    privileged: true
+    pid: "host"
+    depends_on:
+      - zabbix-server
+    environment:
+      ZBX_HOSTNAME: "Zabbix server"
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_ACTIVE: zabbix-server
+      TZ: ${TZ}
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+    networks:
+      - zabbix-net
+
+networks:
+  zabbix-net:
+    driver: bridge
