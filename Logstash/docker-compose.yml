@@ -1,0 +1,13 @@
+services:
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.15.0
+    container_name: logstash_solo
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      # Отключаем попытки подключения к мониторингу Elasticsearch, чтобы не спамило ошибками в логи
+      XPACK_MONITORING_ENABLED: "false"
+      # Ограничиваем память JVM (по умолчанию Logstash может забрать 1-4 ГБ)
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
